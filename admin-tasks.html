@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка заданий — Админ</title>
+    <style>
+        /* Твой старый стиль — без изменений */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Georgia', serif; background:#000 url('bg.gif') no-repeat center center fixed; background-size:cover; color:#d0d0d8; min-height:100vh; font-size:15px; line-height:1.45; }
+        body::before { content:''; position:fixed; inset:0; background:rgba(0,0,0,0.68); z-index:-2; pointer-events:none; }
+        .navbar { background:rgba(6,6,14,0.88); backdrop-filter:blur(10px); border-bottom:1px solid rgba(50,50,80,0.25); padding:8px 20px; position:sticky; top:0; z-index:1000; display:flex; justify-content:space-between; align-items:center; }
+        .clan-name { font-family:'Arial Black',Arial,sans-serif; font-size:1.45rem; color:#b8b8c8; text-shadow:0 0 12px rgba(140,140,180,0.3); letter-spacing:1.5px; }
+        .right-side { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .user-info { font-size:0.85rem; color:#a0a0b8; }
+        .button { padding:6px 14px; background:rgba(16,16,30,0.75); color:#d0d0d8; border:1px solid rgba(60,60,90,0.35); border-radius:6px; font-weight:600; font-size:0.82rem; cursor:pointer; transition:all 0.25s; text-decoration:none; }
+        .button:hover { background:rgba(35,35,55,0.95); border-color:#a0a0c0; color:#f8f8ff; }
+        .logout:hover { background:rgba(60,15,15,0.95); border-color:#a03030; }
+        .container { max-width:1100px; width:94%; margin:30px auto; padding:0 15px; }
+        .card { background:rgba(8,8,18,0.78); backdrop-filter:blur(12px); border:1px solid rgba(60,60,90,0.25); border-radius:12px; padding:24px 20px; box-shadow:0 10px 40px rgba(0,0,0,0.7); }
+        h1 { color:#c0c0d8; text-align:center; font-size:2.1rem; text-shadow:0 0 16px rgba(160,160,200,0.25); margin-bottom:16px; }
+        .filter-bar { margin:20px 0; text-align:center; }
+        select { padding:8px 12px; background:rgba(12,12,25,0.8); border:1px solid #60607a; color:#e0e0f0; border-radius:6px; }
+        .task-list { display:grid; gap:16px; margin-top:20px; }
+        .task-item { background:rgba(12,12,25,0.75); border:1px solid rgba(60,60,90,0.4); border-radius:10px; padding:16px; display:grid; gap:12px; }
+        .task-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+        .task-nick { font-weight:bold; color:#d0d0f0; font-size:1.18rem; }
+        .task-status { padding:5px 14px; border-radius:20px; font-size:0.84rem; font-weight:600; }
+        .pending  { background:#4a3c00; color:#ffcc66; }
+        .approved { background:#1a4a1a; color:#b0ff90; }
+        .rejected { background:#4a1a1a; color:#ff9090; }
+        .task-type { color:#a8a8d0; font-size:0.95rem; }
+        .task-comment { color:#c0c0d0; line-height:1.5; }
+        .task-image { max-width:100%; max-height:420px; border-radius:8px; border:1px solid rgba(80,80,110,0.5); align-self:center; }
+        .admin-actions { display:flex; gap:12px; flex-wrap:wrap; }
+        .btn-approve { background:#2a602a; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; }
+        .btn-approve:hover { background:#3a803a; }
+        .btn-reject  { background:#602a2a; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; }
+        .btn-reject:hover  { background:#803a3a; }
+        .reject-reason { color:#ffaaaa; font-size:0.92rem; margin-top:8px; }
+        .no-tasks { text-align:center; color:#8080a0; padding:60px 0; font-size:1.1rem; }
+        .back-link { display:block; text-align:center; margin:40px 0 20px; color:#a0a0c0; text-decoration:none; }
+        .back-link:hover { color:#d0d0e8; text-decoration:underline; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h1 class="clan-name">Смерть от неизбежности</h1>
+        <div class="right-side">
+            <span id="userInfo" class="user-info"></span>
+            <a class="button" href="admin.html">← Админ-панель</a>
+            <a class="button" href="index.html">На главную</a>
+            <button id="logoutBtn" class="button logout">Выйти</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h1>Проверка заданий</h1>
+
+            <div class="filter-bar">
+                <label>Показать: </label>
+                <select id="statusFilter">
+                    <option value="all">Все</option>
+                    <option value="pending" selected>Ожидающие</option>
+                    <option value="approved">Одобренные</option>
+                    <option value="rejected">Отклонённые</option>
+                </select>
+            </div>
+
+            <div id="taskList" class="task-list"></div>
+
+            <a href="admin.html" class="back-link">← вернуться в админ-панель</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            where, 
+            orderBy, 
+            getDocs, 
+            doc, 
+            updateDoc, 
+            getDoc 
+        } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJYlZefVTt-hV0TYpJwR4TeFSE9tL7LBs",
+            authDomain: "smert-neizbezhnost-5bed1.firebaseapp.com",
+            projectId: "smert-neizbezhnost-5bed1",
+            storageBucket: "smert-neizbezhnost-5bed1.firebasestorage.app",
+            messagingSenderId: "189599859406",
+            appId: "1:189599859406:web:a7012bf4c5bd06161ec69f",
+            measurementId: "G-EK917724G4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Проверка, что пользователь — админ
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                alert('Сначала войдите');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists() || (!userDoc.data().isAdmin && userDoc.data().nick.toLowerCase() !== 'admin')) {
+                alert('Доступ только администраторам');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            document.getElementById('userInfo').textContent = `Админ: ${userDoc.data().nick}`;
+            renderTasks();
+        });
+
+        // Отрисовка заданий
+        async function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+
+            const filter = document.getElementById('statusFilter').value;
+
+            let q = query(
+                collection(db, "tasks"),
+                orderBy("submitted", "desc")
+            );
+
+            if (filter !== 'all') {
+                q = query(q, where("status", "==", filter));
+            }
+
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                taskList.innerHTML = '<div class="no-tasks">Нет заданий по выбранному фильтру</div>';
+                return;
+            }
+
+            querySnapshot.forEach((docSnap) => {
+                const task = { id: docSnap.id, ...docSnap.data() };
+
+                const item = document.createElement('div');
+                item.className = 'task-item';
+
+                const header = document.createElement('div');
+                header.className = 'task-header';
+
+                const nick = document.createElement('div');
+                nick.className = 'task-nick';
+                nick.textContent = task.nick;
+
+                const status = document.createElement('div');
+                status.className = `task-status ${task.status}`;
+                status.textContent = task.status === 'pending' ? 'Ожидает проверки' :
+                                     task.status === 'approved' ? 'Одобрено' : 'Отклонено';
+
+                header.appendChild(nick);
+                header.appendChild(status);
+
+                const type = document.createElement('div');
+                type.className = 'task-type';
+                type.textContent = `Тип: ${task.type}`;
+
+                const comment = document.createElement('div');
+                comment.className = 'task-comment';
+                comment.textContent = task.comment;
+
+                const img = document.createElement('img');
+                img.className = 'task-image';
+                img.src = task.image;
+                img.alt = 'Доказательство';
+
+                item.appendChild(header);
+                item.appendChild(type);
+                item.appendChild(comment);
+                item.appendChild(img);
+
+                if (task.status === 'rejected' && task.rejectReason) {
+                    const reason = document.createElement('div');
+                    reason.className = 'reject-reason';
+                    reason.textContent = `Причина: ${task.rejectReason}`;
+                    item.appendChild(reason);
+                }
+
+                // Действия только для ожидающих заданий
+                if (task.status === 'pending') {
+                    const actions = document.createElement('div');
+                    actions.className = 'admin-actions';
+
+                    const approveBtn = document.createElement('button');
+                    approveBtn.className = 'btn-approve';
+                    approveBtn.textContent = 'Одобрить';
+                    approveBtn.onclick = () => approveTask(task.id, task.nick, task.type);
+                    actions.appendChild(approveBtn);
+
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'btn-reject';
+                    rejectBtn.textContent = 'Отклонить';
+                    rejectBtn.onclick = () => rejectTask(task.id);
+                    actions.appendChild(rejectBtn);
+
+                    item.appendChild(actions);
+                }
+
+                taskList.appendChild(item);
+            });
+        }
+
+        // Функция одобрения задания + начисление Пороха
+        async function approveTask(taskId, nick, type) {
+            if (!confirm(`Одобрить задание от ${nick} (${type})?`)) return;
+
+            let amount = 0;
+            const t = type.toLowerCase();
+
+            if (t.includes('обход')) amount = 20;
+            else if (t.includes('тренировка')) amount = 30;
+            else if (t.includes('набор') && t.includes('человека')) amount = 60;
+            else if (t.includes('набор')) amount = 10;
+            else if (t.includes('союз')) amount = 80;
+            else if (t.includes('лекция')) amount = 20;
+            else if (t.includes('рпб') || t.includes('ролевой бой')) {
+                if (t.includes('победа')) amount = 30;
+                else amount = 20;
+            }
+            else if (t.includes('мини-игр') || t.includes('мини игры')) amount = 20;
+            else if (t.includes('тематический сбор')) amount = 60;
+            else if (t.includes('видео') && t.includes('тикток')) amount = 80;
+            else amount = 10; // по умолчанию для "Другое"
+
+            try {
+                // Обновляем статус задания
+                await updateDoc(doc(db, "tasks", taskId), {
+                    status: 'approved',
+                    approvedAt: new Date().toISOString()
+                });
+
+                // Начисляем Порох игроку
+                const userQuery = query(collection(db, "users"), where("nick", "==", nick));
+                const userSnapshot = await getDocs(userQuery);
+                if (!userSnapshot.empty) {
+                    const userDoc = userSnapshot.docs[0];
+                    const currentPoroh = userDoc.data().poroh || 0;
+                    await updateDoc(userDoc.ref, {
+                        poroh: currentPoroh + amount
+                    });
+                    alert(`Задание одобрено!\nНачислено +${amount} Пороха.\nТеперь у ${nick}: ${currentPoroh + amount}`);
+                } else {
+                    alert('Задание одобрено, но игрок не найден — Порох не начислен');
+                }
+
+                renderTasks();
+            } catch (error) {
+                alert('Ошибка при одобрении: ' + error.message);
+            }
+        }
+
+        // Функция отклонения задания
+        async function rejectTask(taskId) {
+            const reason = prompt('Причина отклонения (можно оставить пустым):');
+            try {
+                await updateDoc(doc(db, "tasks", taskId), {
+                    status: 'rejected',
+                    rejectReason: reason?.trim() || 'Не соответствует требованиям',
+                    rejectedAt: new Date().toISOString()
+                });
+                alert('Задание отклонено');
+                renderTasks();
+            } catch (error) {
+                alert('Ошибка при отклонении: ' + error.message);
+            }
+        }
+
+        // Фильтр
+        document.getElementById('statusFilter').addEventListener('change', renderTasks);
+
+        // Выход
+        document.getElementById('logoutBtn').onclick = async () => {
+            await signOut(auth);
+            alert('Вы вышли');
+            window.location.href = 'index.html';
+        };
+    </script>
+</body>
+</html>

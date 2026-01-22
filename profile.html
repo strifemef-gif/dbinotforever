@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный путь — Смерть от неизбежности</title>
+    <style>
+        /* Твой старый стиль — оставляем без изменений */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Georgia', serif; background: #000 url('bg.gif') no-repeat center center fixed; background-size: cover; color: #d0d0d8; min-height: 100vh; font-size: 15px; line-height: 1.45; position: relative; }
+        body::after { content: ''; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.68); z-index: -2; pointer-events: none; }
+        .navbar { background: rgba(6, 6, 14, 0.88); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(50,50,80,0.25); padding: 8px 20px; position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; font-size: 0.92rem; }
+        .clan-name { font-family: 'Arial Black', Arial, sans-serif; font-size: 1.45rem; color: #b8b8c8; text-shadow: 0 0 12px rgba(140,140,180,0.3); letter-spacing: 1.5px; }
+        .right-side { display: flex; align-items: center; gap: 10px; }
+        .user-info { font-size: 0.85rem; color: #a0a0b8; }
+        .button { padding: 6px 14px; background: rgba(16,16,30,0.75); color: #d0d0d8; border: 1px solid rgba(60,60,90,0.35); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.82rem; transition: all 0.25s ease; cursor: pointer; }
+        .button:hover { background: rgba(35,35,55,0.95); border-color: #a0a0c0; box-shadow: 0 0 14px rgba(120,120,160,0.3); color: #f8f8ff; }
+        .logout { background: rgba(30,8,8,0.75); border-color: rgba(90,30,30,0.35); }
+        .logout:hover { background: rgba(60,15,15,0.95); border-color: #a03030; }
+        .container { max-width: 820px; width: 94%; margin: 30px auto; padding: 0 15px; position: relative; z-index: 1; }
+        .profile-card { background: rgba(8,8,18,0.78); backdrop-filter: blur(12px); border: 1px solid rgba(60,60,90,0.25); border-radius: 12px; padding: 24px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
+        h1 { color: #c0c0d8; text-align: center; font-size: 2.1rem; text-shadow: 0 0 16px rgba(160,160,200,0.25); margin: 0 0 24px; }
+        .avatar { width: 90px; height: 90px; background: rgba(12,12,25,0.85); border: 2px solid rgba(60,60,90,0.35); border-radius: 50%; margin: 0 auto 18px; display: flex; align-items: center; justify-content: center; font-size: 3.2rem; color: #b0b0d0; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .skin-section { margin: 24px 0; padding: 16px; background: rgba(6,6,14,0.68); border: 1px solid rgba(50,50,80,0.22); border-radius: 10px; text-align: center; }
+        .skin-preview { width: 128px; height: 128px; background: rgba(12,12,25,0.85); border: 2px solid rgba(60,60,90,0.35); border-radius: 8px; margin: 12px auto; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .skin-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .skin-placeholder { font-size: 1.2rem; color: #707090; }
+        .upload-label { display: inline-block; margin: 12px 0; padding: 8px 16px; background: rgba(30,30,50,0.7); border: 1px solid rgba(80,80,120,0.4); border-radius: 6px; color: #b0b0d0; cursor: pointer; transition: all 0.25s; }
+        .upload-label:hover { background: rgba(50,50,80,0.9); color: #e0e0f0; }
+        input[type="file"] { display: none; }
+        .info-block, .stats-block, .change-pass-block, .my-tasks-block { margin: 20px 0; padding: 16px; background: rgba(6,6,14,0.68); border: 1px solid rgba(50,50,80,0.22); border-radius: 10px; }
+        .info-block h3, .stats-block h3, .change-pass-block h3, .my-tasks-block h3 { color: #b8b8c8; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(60,60,90,0.2); font-size: 1.18rem; }
+        p.info-line { margin: 8px 0; font-size: 0.95rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 10px; }
+        .stat { background: rgba(12,12,25,0.65); padding: 12px 10px; border-radius: 8px; text-align: center; border: 1px solid rgba(50,50,80,0.2); font-size: 0.88rem; }
+        .stat > div:first-child { font-size: 0.9rem; margin-bottom: 6px; opacity: 0.85; }
+        .stat-value { font-size: 1.55rem; font-weight: bold; margin: 4px 0; }
+        .poroh-value { color: #ffd700; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #c0c0d8; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 10px 12px; border: 1px solid rgba(60,60,90,0.4); border-radius: 6px; background: rgba(12,12,25,0.75); color: #e0e0f0; font-size: 0.94rem; }
+        .form-group input:focus { border-color: #b0b0d0; box-shadow: 0 0 12px rgba(140,140,180,0.3); outline: none; }
+        .submit-btn { width: 100%; padding: 11px; background: linear-gradient(135deg, #22223a, #3a3a52); color: #f0f0f8; border: none; border-radius: 6px; font-size: 0.98rem; font-weight: bold; cursor: pointer; transition: all 0.25s; }
+        .submit-btn:hover { background: linear-gradient(135deg, #3a3a52, #5a5a72); box-shadow: 0 6px 20px rgba(100,100,140,0.3); }
+        .error-msg, .success-msg { font-size: 0.82rem; margin-top: 5px; display: none; }
+        .back-link { display: block; margin: 24px auto 0; text-align: center; color: #a0a0c0; text-decoration: none; font-size: 0.92rem; }
+        .back-link:hover { color: #d0d0e8; text-decoration: underline; }
+        .task-list { display: grid; gap: 12px; }
+        .task-item { position: relative; background: rgba(12,12,25,0.65); padding: 14px 16px; border-radius: 8px; border: 1px solid rgba(50,50,80,0.3); }
+        .task-delete { position: absolute; top: 8px; right: 10px; width: 26px; height: 26px; background: rgba(80,20,20,0.8); color: #ff9090; border: none; border-radius: 50%; font-size: 1.2rem; line-height: 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .task-delete:hover { background: #c02020; color: white; transform: scale(1.15); }
+        .task-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; padding-right: 36px; }
+        .task-type { font-weight: bold; color: #c8c8e0; }
+        .task-status { padding: 4px 12px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; }
+        .status-pending  { background: #4a3c00; color: #ffcc66; }
+        .status-approved { background: #1a4a1a; color: #a0ff80; }
+        .status-rejected { background: #4a1a1a; color: #ff9090; }
+        .task-comment { font-size: 0.92rem; color: #b0b0d0; line-height: 1.4; margin-top: 6px; }
+        .task-reason { font-size: 0.9rem; color: #ffaaaa; }
+        .task-date { font-size: 0.85rem; color: #9090b0; margin-top: 8px; }
+        .no-tasks { text-align: center; color: #8080a0; padding: 20px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h1 class="clan-name">Смерть от неизбежности</h1>
+        <div class="right-side">
+            <span id="userInfo" class="user-info"></span>
+            <a class="button" href="index.html">На главную</a>
+            <button id="logoutBtn" class="button logout">Выйти</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="profile-card">
+            <h1>Личный путь</h1>
+
+            <div class="avatar" id="avatar">☠</div>
+
+            <!-- Скин -->
+            <div class="skin-section">
+                <h3>Твой скин</h3>
+                <div class="skin-preview" id="skinPreview">
+                    <div class="skin-placeholder">Загрузи скин</div>
+                </div>
+                <label for="skinUpload" class="upload-label">Выбрать изображение</label>
+                <input type="file" id="skinUpload" accept="image/*">
+            </div>
+
+            <!-- Информация -->
+            <div class="info-block">
+                <h3>Информация</h3>
+                <p class="info-line">Ник: <strong id="displayNick"></strong></p>
+                <p class="info-line">Присоединился: <strong id="displayRegistered"></strong></p>
+                <p class="info-line">Последний вздох: <strong data-key="lastSeen"></strong></p>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats-block">
+                <h3>Статистика</h3>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div>Время в клане</div>
+                        <div class="stat-value" id="totalTime">0.0</div>
+                        <div>часов</div>
+                    </div>
+                    <div class="stat">
+                        <div>Порох</div>
+                        <div class="stat-value poroh-value" id="porohDisplay">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Смена пароля -->
+            <div class="change-pass-block">
+                <h3>Сменить пароль</h3>
+                <form id="changePassForm">
+                    <div class="form-group">
+                        <label for="oldPass">Текущий пароль</label>
+                        <input type="password" id="oldPass" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPass">Новый пароль</label>
+                        <input type="password" id="newPass" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPass2">Повтори новый пароль</label>
+                        <input type="password" id="newPass2" required>
+                    </div>
+                    <div id="passError" class="error-msg"></div>
+                    <div id="passSuccess" class="success-msg"></div>
+                    <button type="submit" class="submit-btn">Сменить</button>
+                </form>
+            </div>
+
+            <!-- Мои задания -->
+            <div class="my-tasks-block">
+                <h3>Мои задания</h3>
+                <div id="myTasksList" class="task-list"></div>
+            </div>
+
+            <a href="index.html" class="back-link">← вернуться на главную</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+        import { 
+            getAuth, 
+            updatePassword, 
+            reauthenticateWithCredential, 
+            EmailAuthProvider, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            updateDoc, 
+            collection, 
+            query, 
+            where, 
+            getDocs, 
+            deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJYlZefVTt-hV0TYpJwR4TeFSE9tL7LBs",
+            authDomain: "smert-neizbezhnost-5bed1.firebaseapp.com",
+            projectId: "smert-neizbezhnost-5bed1",
+            storageBucket: "smert-neizbezhnost-5bed1.firebasestorage.app",
+            messagingSenderId: "189599859406",
+            appId: "1:189599859406:web:a7012bf4c5bd06161ec69f",
+            measurementId: "G-EK917724G4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                alert('Сначала нужно войти');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists()) {
+                alert('Пользователь не найден. Попробуй войти заново.');
+                await auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentUserData = userDoc.data();
+            document.getElementById('userInfo').textContent = `Привет, ${currentUserData.nick}`;
+            document.getElementById('displayNick').textContent = currentUserData.nick;
+            document.getElementById('displayRegistered').textContent = new Date(currentUserData.registered).toLocaleDateString('ru-RU', {
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+            document.getElementById('porohDisplay').textContent = currentUserData.poroh || 0;
+
+            // Загрузка скина
+            if (currentUserData.skinBase64) {
+                document.getElementById('skinPreview').innerHTML = `<img src="${currentUserData.skinBase64}" alt="Твой скин">`;
+            }
+
+            // Последний вход
+            const now = new Date();
+            document.querySelector('[data-key="lastSeen"]').textContent = now.toLocaleString('ru-RU', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            // Время в игре
+            const TIME_KEY = `timeSpent_${user.uid}`;
+            let totalSeconds = parseInt(localStorage.getItem(TIME_KEY)) || 0;
+            function updateTimeDisplay() {
+                const hours = (totalSeconds / 3600).toFixed(1);
+                document.getElementById('totalTime').textContent = hours;
+            }
+            updateTimeDisplay();
+            const timerInterval = setInterval(() => {
+                totalSeconds++;
+                localStorage.setItem(TIME_KEY, totalSeconds);
+                updateTimeDisplay();
+            }, 1000);
+
+            window.addEventListener('beforeunload', () => {
+                clearInterval(timerInterval);
+                localStorage.setItem(TIME_KEY, totalSeconds);
+            });
+
+            renderMyTasks(user.uid);
+        });
+
+        // Смена пароля
+        document.getElementById('changePassForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldPass = document.getElementById('oldPass').value;
+            const newPass = document.getElementById('newPass').value;
+            const newPass2 = document.getElementById('newPass2').value;
+
+            const errorDiv = document.getElementById('passError');
+            const successDiv = document.getElementById('passSuccess');
+
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            if (newPass !== newPass2) {
+                errorDiv.textContent = 'Новые пароли не совпадают';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (newPass.length < 6) {
+                errorDiv.textContent = 'Новый пароль слишком короткий (минимум 6 символов)';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const credential = EmailAuthProvider.credential(auth.currentUser.email, oldPass);
+                await reauthenticateWithCredential(auth.currentUser, credential);
+                await updatePassword(auth.currentUser, newPass);
+
+                successDiv.textContent = 'Пароль успешно изменён!';
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('changePassForm').reset();
+                    successDiv.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                if (error.code === 'auth/wrong-password') {
+                    errorDiv.textContent = 'Текущий пароль неверный';
+                } else {
+                    errorDiv.textContent = error.message;
+                }
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Загрузка скина
+        document.getElementById('skinUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const base64 = event.target.result;
+                try {
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                        skinBase64: base64
+                    });
+                    document.getElementById('skinPreview').innerHTML = `<img src="${base64}" alt="Твой скин">`;
+                    alert('Скин обновлён!');
+                } catch (err) {
+                    alert('Ошибка при сохранении скина: ' + err.message);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Выход
+        document.getElementById('logoutBtn').onclick = async () => {
+            await auth.signOut();
+            alert('Вы вышли');
+            window.location.href = 'index.html';
+        };
+
+        // Отрисовка заданий пользователя
+        async function renderMyTasks(uid) {
+            const taskList = document.getElementById('myTasksList');
+            taskList.innerHTML = '';
+
+            const q = query(
+                collection(db, "tasks"),
+                where("uid", "==", uid),
+                where("status", "in", ["pending", "approved", "rejected"])
+            );
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                taskList.innerHTML = '<div class="no-tasks">У вас пока нет отправленных заданий</div>';
+                return;
+            }
+
+            const tasks = [];
+            querySnapshot.forEach((docSnap) => {
+                tasks.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            tasks.sort((a, b) => new Date(b.submitted) - new Date(a.submitted));
+
+            tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = 'task-item';
+
+                // Кнопка удаления (только для pending)
+                if (task.status === 'pending') {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'task-delete';
+                    deleteBtn.textContent = '×';
+                    deleteBtn.title = 'Удалить задание';
+                    deleteBtn.onclick = async () => {
+                        if (!confirm('Удалить это задание навсегда?')) return;
+                        await deleteDoc(doc(db, "tasks", task.id));
+                        renderMyTasks(uid);
+                    };
+                    item.appendChild(deleteBtn);
+                }
+
+                const header = document.createElement('div');
+                header.className = 'task-header';
+
+                const typeDiv = document.createElement('div');
+                typeDiv.className = 'task-type';
+                typeDiv.textContent = task.type;
+
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `task-status status-${task.status}`;
+                statusDiv.textContent = {
+                    pending: 'Ожидает проверки',
+                    approved: 'Одобрено',
+                    rejected: 'Отклонено'
+                }[task.status];
+
+                header.appendChild(typeDiv);
+                header.appendChild(statusDiv);
+
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'task-comment';
+                commentDiv.textContent = task.comment;
+
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'task-date';
+                dateDiv.textContent = new Date(task.submitted).toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+
+                item.appendChild(header);
+                item.appendChild(commentDiv);
+                item.appendChild(dateDiv);
+
+                if (task.status === 'rejected' && task.rejectReason) {
+                    const reasonDiv = document.createElement('div');
+                    reasonDiv.className = 'task-reason';
+                    reasonDiv.textContent = `Причина: ${task.rejectReason}`;
+                    item.appendChild(reasonDiv);
+                }
+
+                // Превью доказательства (если есть)
+                if (task.image) {
+                    const img = document.createElement('img');
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '8px';
+                    img.style.marginTop = '10px';
+                    img.src = task.image;
+                    item.appendChild(img);
+                }
+
+                taskList.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>

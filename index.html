@@ -1,0 +1,97 @@
+<script type="module">
+    // ==============================
+    // Firebase — ПОЛНЫЙ ИМПОРТ
+    // ==============================
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+        getAuth,
+        onAuthStateChanged,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import {
+        getFirestore,
+        collection,
+        doc,        // ← ОБЯЗАТЕЛЬНО
+        getDoc,     // ← ОБЯЗАТЕЛЬНО
+        getDocs,
+        query,
+        orderBy
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // ==============================
+    // Firebase config
+    // ==============================
+    const firebaseConfig = {
+        apiKey: "AIzaSyAJYlZefVTt-hV0TYpJwR4TeFSE9tL7LBs",
+        authDomain: "smert-neizbezhnost-5bed1.firebaseapp.com",
+        projectId: "smert-neizbezhnost-5bed1",
+        storageBucket: "smert-neizbezhnost-5bed1.firebasestorage.app",
+        messagingSenderId: "189599859406",
+        appId: "1:189599859406:web:a7012bf4c5bd06161ec69f"
+    };
+
+    // ==============================
+    // Инициализация
+    // ==============================
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    console.log("Firebase инициализирован корректно");
+
+    // ==============================
+    // Проверка авторизации
+    // ==============================
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            console.warn("Пользователь не авторизован");
+            window.location.href = "index.html";
+            return;
+        }
+
+        try {
+            // ⚠️ ВАЖНО: getDoc теперь импортирован
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) {
+                alert("Пользователь не найден в базе");
+                await signOut(auth);
+                window.location.href = "index.html";
+                return;
+            }
+
+            const userData = userSnap.data();
+            console.log("Пользователь:", userData);
+
+            // Пример: вывод ника
+            const userInfo = document.getElementById("userInfo");
+            if (userInfo) {
+                userInfo.textContent = `Привет, ${userData.nick}`;
+            }
+
+            // Пример: проверка админа
+            if (userData.isAdmin || userData.nick?.toLowerCase() === "admin") {
+                console.log("Администратор подтверждён");
+                const adminBtn = document.getElementById("adminPanelBtn");
+                if (adminBtn) adminBtn.style.display = "inline-block";
+            }
+
+        } catch (error) {
+            console.error("Ошибка загрузки пользователя:", error);
+            alert("Ошибка загрузки профиля");
+        }
+    });
+
+    // ==============================
+    // Выход
+    // ==============================
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", async () => {
+            await signOut(auth);
+            alert("Вы вышли из аккаунта");
+            window.location.href = "index.html";
+        });
+    }
+</script>

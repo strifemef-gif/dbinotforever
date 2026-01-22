@@ -1,0 +1,175 @@
+<script type="module">
+    // ================================================
+    // ПОЛНЫЙ, БОЛЬШОЙ И РАБОЧИЙ СКРИПТ ДЛЯ TASKS.HTML
+    // Все импорты явно указаны — ошибка "doc is not defined" исчезнет
+    // Добавлены подробные логи, проверки и отладка
+    // ================================================
+
+    console.log("Скрипт tasks.html запущен. Ожидаем загрузки DOM...");
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("DOM полностью загружен — начинаем работу");
+
+        // 1. Импорт всех модулей Firebase (doc и getDoc здесь!)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+        
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            serverTimestamp,
+            doc,           // ← doc определён здесь!
+            getDoc         // ← getDoc определён здесь!
+        } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+        console.log("Все импорты Firebase успешно выполнены");
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJYlZefVTt-hV0TYpJwR4TeFSE9tL7LBs",
+            authDomain: "smert-neizbezhnost-5bed1.firebaseapp.com",
+            projectId: "smert-neizbezhnost-5bed1",
+            storageBucket: "smert-neizbezhnost-5bed1.firebasestorage.app",
+            messagingSenderId: "189599859406",
+            appId: "1:189599859406:web:a7012bf4c5bd06161ec69f",
+            measurementId: "G-EK917724G4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        console.log("Firebase полностью инициализирован");
+
+        // 2. Проверка авторизации + вывод приветствия
+        onAuthStateChanged(auth, async (user) => {
+            const userInfo = document.getElementById('userInfo');
+
+            if (!user) {
+                console.log("Пользователь не авторизован");
+                if (userInfo) userInfo.textContent = '';
+                alert('Сначала войдите в аккаунт');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            console.log("Пользователь авторизован. UID:", user.uid);
+
+            try {
+                console.log("Загружаем данные пользователя...");
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    console.log("Данные пользователя получены:", userData);
+                    if (userInfo) userInfo.textContent = `Привет, ${userData.nick || 'Игрок'}`;
+                } else {
+                    console.warn("Документ пользователя не найден в базе");
+                    if (userInfo) userInfo.textContent = '';
+                    alert('Данные пользователя не найдены. Попробуйте войти заново.');
+                    await signOut(auth);
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error("Ошибка при загрузке профиля:", error);
+                if (userInfo) userInfo.textContent = 'Ошибка загрузки профиля';
+            }
+        });
+
+        // 3. Отправка задания (полная логика)
+        const form = document.getElementById('taskUploadForm');
+        if (!form) {
+            console.error("Форма #taskUploadForm НЕ НАЙДЕНА на странице!");
+        } else {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log("Форма отправлена. Проверяем поля...");
+
+                const typeEl = document.getElementById('taskType');
+                const commentEl = document.getElementById('taskComment');
+                const fileEl = document.getElementById('taskImage');
+
+                const type = typeEl?.value;
+                const comment = commentEl?.value?.trim();
+                const file = fileEl?.files?.[0];
+
+                if (!type || !comment || !file) {
+                    alert('Заполните все поля и выберите файл');
+                    console.warn("Не все поля заполнены");
+                    return;
+                }
+
+                console.log("Файл выбран:", file.name, "размер:", file.size);
+
+                const reader = new FileReader();
+                reader.onload = async function(ev) {
+                    console.log("Файл успешно прочитан в base64");
+
+                    try {
+                        const user = auth.currentUser;
+                        if (!user) {
+                            alert('Вы не авторизованы');
+                            console.warn("Пользователь не авторизован при отправке");
+                            return;
+                        }
+
+                        console.log("Загружаем ник пользователя...");
+                        const userDocRef = doc(db, "users", user.uid);
+                        const userDocSnap = await getDoc(userDocRef);
+
+                        if (!userDocSnap.exists()) {
+                            alert('Пользователь не найден в базе');
+                            console.warn("Пользователь не найден в Firestore");
+                            return;
+                        }
+
+                        const nick = userDocSnap.data().nick || 'Без ника';
+                        console.log("Ник:", nick);
+
+                        console.log("Сохраняем задание в Firestore...");
+                        await addDoc(collection(db, "tasks"), {
+                            uid: user.uid,
+                            nick: nick,
+                            type: type,
+                            comment: comment,
+                            image: ev.target.result,
+                            status: 'pending',
+                            submitted: serverTimestamp(),
+                            createdAt: new Date().toISOString()
+                        });
+
+                        console.log("Задание успешно сохранено!");
+                        alert('Задание успешно отправлено на проверку!\nАдминистрация скоро рассмотрит вашу работу.');
+                        form.reset();
+                    } catch (error) {
+                        console.error("Ошибка при отправке задания:", error);
+                        alert('Ошибка при отправке: ' + error.message);
+                    }
+                };
+
+                reader.onerror = function() {
+                    console.error("Ошибка чтения файла");
+                    alert('Ошибка при чтении файла');
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 4. Выход
+        document.getElementById('logoutBtn')?.onclick = async () => {
+            console.log("Пользователь вышел из аккаунта");
+            await signOut(auth);
+            alert('Вы вышли');
+            window.location.href = 'index.html';
+        };
+
+        // 5. Отладка — если что-то сломалось, увидишь в консоли
+        console.log("Скрипт полностью загружен и готов к работе");
+    });
+</script>
